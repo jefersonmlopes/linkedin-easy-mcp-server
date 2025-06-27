@@ -1,0 +1,13 @@
+{
+    "mcpServers": {
+        "linkedin-easy": {
+            "command": "node",
+            "args": [
+                "/Users/jefersonlopes/Documents/Workspace/Pessoal/linkedin-easy-mcp-server/dist/index.js"
+            ],
+            "env": {
+                "LINKEDIN_ACCESS_TOKEN": "your_access_token_here"
+            }
+        }
+    }
+}
