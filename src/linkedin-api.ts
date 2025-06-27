@@ -13,6 +13,69 @@ export interface LinkedInProfile {
     email_verified?: boolean;
 }
 
+export interface LinkedInExperience {
+    id?: string;
+    title: string;
+    companyName: string;
+    description?: string;
+    startDate?: {
+        month?: number;
+        year?: number;
+    };
+    endDate?: {
+        month?: number;
+        year?: number;
+    };
+    isCurrent?: boolean;
+    location?: string;
+    companyId?: string;
+    companyUrl?: string;
+}
+
+export interface LinkedInEducation {
+    id?: string;
+    schoolName: string;
+    degreeName?: string;
+    fieldOfStudy?: string;
+    startDate?: {
+        month?: number;
+        year?: number;
+    };
+    endDate?: {
+        month?: number;
+        year?: number;
+    };
+    description?: string;
+    activities?: string;
+}
+
+export interface LinkedInCompleteProfile {
+    basicInfo: LinkedInProfile;
+    experiences?: LinkedInExperience[];
+    education?: LinkedInEducation[];
+    skills?: string[];
+    summary?: string;
+    headline?: string;
+    location?: string;
+    industry?: string;
+    connections?: number;
+    profileUrl?: string;
+    profileViews?: number;
+    languages?: {
+        name: string;
+        proficiency?: string;
+    }[];
+    certifications?: {
+        name: string;
+        authority: string;
+        date?: {
+            month?: number;
+            year?: number;
+        };
+        url?: string;
+    }[];
+}
+
 export interface LinkedInPost {
     id: string;
     author: string;
@@ -86,6 +149,119 @@ export class LinkedInAPI {
         } catch (error: any) {
             console.error('LinkedIn API Error:', error.response?.data || error.message);
             throw new Error(`Failed to get profile: ${error.response?.data?.message || error.message}`);
+        }
+    }
+
+    async getCompleteProfile(): Promise<LinkedInCompleteProfile> {
+        try {
+            // Get basic profile info from OpenID Connect
+            const basicProfile = await this.getProfile();
+
+            const result: LinkedInCompleteProfile = {
+                basicInfo: basicProfile
+            };
+
+            // Try to get additional profile data
+            // Note: Most of these endpoints require special permissions
+            try {
+                // Get person profile with more details
+                const personResponse = await this.client.get(`/people/(id:${basicProfile.sub})`);
+                const personData = personResponse.data;
+
+                result.headline = personData.headline?.localized?.en_US || personData.headline;
+                result.summary = personData.summary?.localized?.en_US || personData.summary;
+                result.industry = personData.industryName?.localized?.en_US || personData.industryName;
+                result.location = personData.locationName?.localized?.en_US || personData.locationName;
+                result.profileUrl = personData.publicProfileUrl;
+
+            } catch (profileError: any) {
+                console.warn('⚠️ Additional profile data not available:', profileError.response?.data?.message || profileError.message);
+            }
+
+            // Try to get experience data
+            try {
+                const experienceResponse = await this.client.get(`/people/(id:${basicProfile.sub})/positions`);
+                const experiences = experienceResponse.data.elements || [];
+
+                result.experiences = experiences.map((exp: any) => ({
+                    id: exp.id,
+                    title: exp.title?.localized?.en_US || exp.title || 'Not specified',
+                    companyName: exp.companyName?.localized?.en_US || exp.companyName || 'Not specified',
+                    description: exp.description?.localized?.en_US || exp.description,
+                    startDate: {
+                        month: exp.timePeriod?.startDate?.month,
+                        year: exp.timePeriod?.startDate?.year
+                    },
+                    endDate: exp.timePeriod?.endDate ? {
+                        month: exp.timePeriod.endDate.month,
+                        year: exp.timePeriod.endDate.year
+                    } : undefined,
+                    isCurrent: !exp.timePeriod?.endDate,
+                    location: exp.locationName?.localized?.en_US || exp.locationName,
+                    companyId: exp.company
+                }));
+
+            } catch (experienceError: any) {
+                console.warn('⚠️ Experience data requires special permissions:', experienceError.response?.data?.message || experienceError.message);
+                result.experiences = [];
+            }
+
+            // Try to get education data
+            try {
+                const educationResponse = await this.client.get(`/people/(id:${basicProfile.sub})/educations`);
+                const educations = educationResponse.data.elements || [];
+
+                result.education = educations.map((edu: any) => ({
+                    id: edu.id,
+                    schoolName: edu.schoolName?.localized?.en_US || edu.schoolName || 'Not specified',
+                    degreeName: edu.degreeName?.localized?.en_US || edu.degreeName,
+                    fieldOfStudy: edu.fieldOfStudy?.localized?.en_US || edu.fieldOfStudy,
+                    startDate: {
+                        month: edu.timePeriod?.startDate?.month,
+                        year: edu.timePeriod?.startDate?.year
+                    },
+                    endDate: edu.timePeriod?.endDate ? {
+                        month: edu.timePeriod.endDate.month,
+                        year: edu.timePeriod.endDate.year
+                    } : undefined,
+                    description: edu.description?.localized?.en_US || edu.description,
+                    activities: edu.activities?.localized?.en_US || edu.activities
+                }));
+
+            } catch (educationError: any) {
+                console.warn('⚠️ Education data requires special permissions:', educationError.response?.data?.message || educationError.message);
+                result.education = [];
+            }
+
+            // Try to get skills data
+            try {
+                const skillsResponse = await this.client.get(`/people/(id:${basicProfile.sub})/skills`);
+                const skills = skillsResponse.data.elements || [];
+
+                result.skills = skills.map((skill: any) =>
+                    skill.name?.localized?.en_US || skill.name || 'Unknown skill'
+                );
+
+            } catch (skillsError: any) {
+                console.warn('⚠️ Skills data requires special permissions:', skillsError.response?.data?.message || skillsError.message);
+                result.skills = [];
+            }
+
+            return result;
+
+        } catch (error: any) {
+            console.error('LinkedIn Complete Profile API Error:', error.response?.data || error.message);
+
+            // If everything fails, return at least basic profile
+            const basicProfile = await this.getProfile();
+            return {
+                basicInfo: basicProfile,
+                experiences: [],
+                education: [],
+                skills: [],
+                summary: 'Profile data requires additional LinkedIn API permissions. Most profile details are restricted for standard applications.',
+                headline: 'Limited access - requires LinkedIn partnership approval'
+            };
         }
     }
 

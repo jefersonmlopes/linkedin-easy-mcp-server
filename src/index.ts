@@ -65,6 +65,14 @@ class LinkedInMCPServer {
                         },
                     },
                     {
+                        name: 'get_complete_profile',
+                        description: '⚠️ Get your complete LinkedIn profile including experiences, education, and skills (Requires additional LinkedIn API permissions)',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {},
+                        },
+                    },
+                    {
                         name: 'validate_token',
                         description: '✅ Validate if your access token is still valid (Always available)',
                         inputSchema: {
@@ -312,6 +320,17 @@ class LinkedInMCPServer {
                                 {
                                     type: 'text',
                                     text: JSON.stringify(profile, null, 2),
+                                },
+                            ],
+                        };
+
+                    case 'get_complete_profile':
+                        const completeProfile = await this.linkedinAPI.getCompleteProfile();
+                        return {
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: JSON.stringify(completeProfile, null, 2),
                                 },
                             ],
                         };

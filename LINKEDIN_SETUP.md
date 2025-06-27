@@ -19,6 +19,7 @@ A API do LinkedIn tem **restrições severas** para aplicações de terceiros. A
 |---|---|---|
 | ✅ `test_connection` | **Sempre disponível** | Testar conexão e validar token |
 | ✅ `get_profile` | **Sempre disponível** | Obter informações básicas do perfil via OpenID Connect |
+| ✅ `get_complete_profile` | **Requer permissões especiais** | Obter perfil completo com experiências, educação e habilidades |
 | ✅ `validate_token` | **Sempre disponível** | Verificar se o token é válido |
 | ✅ `get_token_info` | **Sempre disponível** | Informações detalhadas sobre token e scopes |
 | ⚠️ `create_text_post` | **Requer w_member_social** | Criar posts de texto |
@@ -162,7 +163,8 @@ npm start
 2. **Teste ferramentas disponíveis**:
    ```
    test_connection - Testar conexão com LinkedIn
-   get_profile - Obter perfil do usuário
+   get_profile - Obter perfil básico do usuário
+   get_complete_profile - Obter perfil completo com experiências, educação e habilidades
    create_text_post - Criar post de texto
    validate_token - Validar se token está funcionando
    ```
@@ -187,6 +189,54 @@ npm start
   }
 }
 ```
+
+## 📋 Exemplo de Perfil Completo
+
+A ferramenta `get_complete_profile` retorna um perfil mais detalhado quando as permissões adequadas estão disponíveis:
+
+```json
+{
+  "basicInfo": {
+    "sub": "dXJuOmxpOmRldiIsInMiOjE0MTM",
+    "name": "João Silva",
+    "given_name": "João",
+    "family_name": "Silva",
+    "email": "joao@email.com",
+    "picture": "https://media.licdn.com/dms/image/..."
+  },
+  "headline": "Desenvolvedor Full Stack | React | Node.js",
+  "summary": "Desenvolvedor com 5+ anos de experiência...",
+  "location": "São Paulo, Brasil",
+  "industry": "Tecnologia da Informação",
+  "experiences": [
+    {
+      "title": "Senior Developer",
+      "companyName": "Tech Corp",
+      "description": "Desenvolvimento de aplicações web...",
+      "startDate": { "month": 1, "year": 2022 },
+      "isCurrent": true,
+      "location": "São Paulo, SP"
+    }
+  ],
+  "education": [
+    {
+      "schoolName": "Universidade de São Paulo",
+      "degreeName": "Bacharelado",
+      "fieldOfStudy": "Ciência da Computação",
+      "startDate": { "month": 2, "year": 2015 },
+      "endDate": { "month": 12, "year": 2019 }
+    }
+  ],
+  "skills": [
+    "JavaScript",
+    "React",
+    "Node.js",
+    "TypeScript"
+  ]
+}
+```
+
+**Nota importante**: A maioria dos dados do perfil completo (experiências, educação, habilidades) requer permissões especiais da API do LinkedIn que não estão disponíveis para aplicações padrão. A ferramenta tentará obter o máximo de informações possível com as permissões disponíveis.
 
 ## 🚨 Troubleshooting
 
@@ -252,96 +302,3 @@ Os tokens do LinkedIn expiram em **60 dias**. Para renovar:
 ---
 
 **Nota**: LinkedIn tem políticas rigorosas sobre uso da API. Sempre revise os termos de uso antes de implementar em produção. A maioria das funcionalidades avançadas requer parceria comercial com o LinkedIn.
-2. Headers: `Content-Type: application/x-www-form-urlencoded`
-3. Body:
-   ```
-   grant_type=authorization_code
-   code=SEU_CODIGO_DE_AUTORIZACAO
-   client_id=SEU_CLIENT_ID
-   client_secret=SEU_CLIENT_SECRET
-   redirect_uri=http://localhost:3000/callback
-   ```
-
-## 🛠️ Configuração do Servidor
-
-1. **Configure o token**:
-   ```bash
-   # Edite o arquivo .env
-   LINKEDIN_ACCESS_TOKEN=SEU_TOKEN_AQUI
-   ```
-
-2. **Teste a conexão**:
-   ```bash
-   npm start
-   # Use a ferramenta test_connection para verificar
-   ```
-
-## 🧪 Testando o Servidor
-
-### Via MCP Client
-```json
-{
-  "tool": "test_connection",
-  "arguments": {}
-}
-```
-
-### Via curl (se executando em HTTP)
-```bash
-curl -X POST http://localhost:3000/test \
-  -H "Content-Type: application/json" \
-  -d '{"tool": "test_connection"}'
-```
-
-## 📊 Exemplo de Resposta de Sucesso
-
-```json
-{
-  "success": true,
-  "message": "LinkedIn API connection successful",
-  "user": {
-    "sub": "12345678",
-    "given_name": "João",
-    "family_name": "Silva",
-    "email": "joao@email.com"
-  }
-}
-```
-
-## 🚨 Troubleshooting
-
-### Erro 400 - Bad Request
-- ✅ Verifique se o token não expirou
-- ✅ Confirme as permissões da aplicação
-- ✅ Use a ferramenta `test_connection`
-
-### Erro 401 - Unauthorized  
-- ✅ Token inválido ou expirado
-- ✅ Regenere o token
-
-### Erro 403 - Forbidden
-- ✅ Permissões insuficientes
-- ✅ API requer aprovação especial do LinkedIn
-
-### Token expirado
-Os tokens do LinkedIn expiram em 60 dias. Para token de longa duração:
-1. Use refresh_token se disponível
-2. Implemente renovação automática
-3. Ou configure regeneração manual
-
-## 📚 Recursos Úteis
-
-- [LinkedIn API Documentation](https://docs.microsoft.com/en-us/linkedin/)
-- [OAuth 2.0 Flow](https://docs.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow)
-- [Permissions and Scopes](https://docs.microsoft.com/en-us/linkedin/shared/integrations/people/profile-api)
-
-## 💡 Dicas
-
-1. **Para desenvolvimento**: Use tokens de teste com vida curta
-2. **Para produção**: Implemente refresh token automático  
-3. **Monitoring**: Use `test_connection` periodicamente para verificar saúde da API
-4. **Fallback**: Tenha planos alternativos se APIs forem restringidas
-
----
-
-**Nota**: LinkedIn tem políticas rigorosas sobre uso da API. Sempre revise os termos de uso antes de implementar em produção.
